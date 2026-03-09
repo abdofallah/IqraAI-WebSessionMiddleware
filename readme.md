@@ -2,6 +2,14 @@
 
 A robust, scalable middleware solution designed to act as a secure bridge between client-side web widgets and the Voice AI Agent Platform. It handles authentication, concurrency management, user queuing, rate limiting, and security validation.
 
+## 🌐 Official Web Client (JS Widget)
+
+While this middleware exposes a standard REST and SignalR API allowing you to build your own custom client-side integration, we have created an official, framework-agnostic JavaScript widget that connects to this middleware out of the box. 
+
+👉 **[Get the Iqra AI Web Widget (JavaScript SDK) here &rarr;](https://github.com/abdofallah/IqraAIWebMiddlewareJSWidget)**
+
+---
+
 ## 🚀 Features
 
 *   **Secure Proxy:** Hides sensitive API keys (Iqra.bot tokens) from the client-side browser.
@@ -10,7 +18,7 @@ A robust, scalable middleware solution designed to act as a secure bridge betwee
 *   **Smart Security:**
     *   **IP Validation:** Detects and blocks VPNs, Proxies, and Tor nodes using `ipapi.is`.
     *   **Rate Limiting:** configurable hourly and daily request limits per IP address.
-*   **Scalable Architecture:** Built on .NET 8 and Redis, capable of running across multiple server instances (stateless API).
+*   **Scalable Architecture:** Built on .NET and Redis, capable of running across multiple server instances (stateless API).
 
 ---
 
@@ -18,7 +26,7 @@ A robust, scalable middleware solution designed to act as a secure bridge betwee
 
 Before running the application, ensure you have the following installed:
 
-1.  **.NET 8.0 SDK** ([Download](https://dotnet.microsoft.com/download/dotnet/8.0))
+1.  **.NET SDK** ([Download](https://dotnet.microsoft.com/download/dotnet/98.0))
 2.  **Redis Server** (Required for caching, queueing, and distributed locking).
     *   *Local:* `docker run --name redis-dev -p 6379:6379 -d redis`
 3.  **API Keys:**
