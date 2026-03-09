@@ -116,48 +116,8 @@ All configuration is managed via `appsettings.json`. You must configure these va
 
 ## 🔌 API Reference
 
-### 1. Request a Session
-**Endpoint:** `POST /api/session/request`  
-**Description:** Main entry point for the widget.
-
-**Request Body:**
-```json
-{
-  "campaignId": "ExampleCampaign",
-  "regionId": "us-east-1",
-  "clientIdentifier": "user-123",
-  "dynamicVariables": {
-    "FirstName": "John"
-  },
-  "metadata": {
-    "Source": "Landing Page"
-  }
-}
-```
-
-**Response (Success - 200 OK):**
-```json
-{
-  "webSocketUrl": "wss://voice-api.iqra.bot/..."
-}
-```
-
-**Response (Queued - 202 Accepted):**
-```json
-{
-  "status": "queued",
-  "uniqueRequestId": "guid-string",
-  "queuePosition": 5
-}
-```
-
-### 2. Webhook (Session Ended)
-**Endpoint:** `POST /api/webhook/session-ended`  
-**Description:** Callback URL configured in the Voice AI Platform. Triggered when a call ends to free up a slot.
-
-### 3. Queue Real-time Hub
-**Endpoint:** `/sessionHub` (SignalR)  
-**Description:** WebSocket endpoint for queued clients to listen for updates.
+For a complete breakdown of payloads, endpoints, WebSockets, error codes, and SignalR Queue integration for building custom clients:
+👉 **[Read the API Reference here &rarr;](readme-api-reference.md)**
 
 ---
 
