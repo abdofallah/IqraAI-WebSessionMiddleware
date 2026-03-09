@@ -1,0 +1,42 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  
+  // CORS: Add your client domains here
+  "AllowedOrigins": [
+    "https://your-client-website.com",
+    "http://localhost:5173" 
+  ],
+
+  // Redis Connection (e.g., "localhost:6379" or a connection string)
+  "RedisConnectionString": "localhost:6379",
+
+  // Voice AI Platform Configuration
+  "VoiceAiPlatform": {
+    "ApiSecretToken": "YOUR_IQRA_BOT_SECRET_TOKEN",
+    "BaseUrl": "https://app.iqra.bot/api/v1/",
+    "BusinessId": "IQRA_BUSINESS_ID",
+    "WebCampaignId": "YOUR_WEB_CAMPAIGN_ID",
+    "DefaultRegionId": "IQRA_REGION_ID"
+  },
+
+  // IP Validation Service
+  "IpApi": {
+    "ApiKey": "YOUR_IPAPI_KEY",
+    "BaseUrl": "https://api.ipapi.is/"
+  },
+
+  // Security & Rate Limiting Rules
+  "Security": {
+    "RateLimitHourly": 3,     // Max requests per IP per hour
+    "RateLimitDaily": 20,     // Max requests per IP per day
+    "BlockVpn": true,          // Reject known VPNs
+    "BlockProxy": true,        // Reject known Proxies
+    "BlockDatacenter": false   // Reject Datacenter IPs (AWS, Azure, etc.)
+  }
+}
