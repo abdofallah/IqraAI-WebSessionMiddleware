@@ -16,8 +16,8 @@ While this middleware exposes a standard REST and SignalR API allowing you to bu
 *   **Concurrency Management:** Tracks active calls in real-time. If the concurrency limit is reached, users are automatically placed in a queue.
 *   **Distributed Queueing:** Uses **Redis** and **SignalR** to manage a First-In-First-Out (FIFO) queue. Users are notified in real-time when a slot becomes available.
 *   **Smart Security:**
-    *   **IP Validation:** Detects and blocks VPNs, Proxies, and Tor nodes using `ipapi.is`.
-    *   **Rate Limiting:** configurable hourly and daily request limits per IP address.
+    *   **IP Validation:** Detects and blocks VPNs, Proxies, and Tor nodes using `ipapi.is`. Can be toggled on/off, and queries can be aggressively cached to save API costs.
+    *   **Rate Limiting:** configurable concurrent, hourly and daily request limits per IP address (0 for unlimited).
 *   **Scalable Architecture:** Built on .NET and Redis, capable of running across multiple server instances (stateless API).
 
 ---
@@ -64,9 +64,13 @@ All configuration is managed via `appsettings.json`. You must configure these va
   "VoiceAiPlatform": {
     "ApiSecretToken": "YOUR_IQRA_BOT_SECRET_TOKEN",
     "BaseUrl": "https://app.iqra.bot/api/v1/",
-    "BusinessId": "1",
-    "WebCampaignId": "YOUR_WEB_CAMPAIGN_ID",
-    "DefaultRegionId": "us-east-1"
+    "Campaigns": {
+        "ExampleCampaign": {
+          "BusinessId": "1",
+          "WebCampaignId": "YOUR_WEB_CAMPAIGN_ID",
+          "AllowedRegionIds": ["us-east-1"]
+        }
+    }
   },
 
   // IP Validation Service
@@ -79,6 +83,10 @@ All configuration is managed via `appsettings.json`. You must configure these va
   "Security": {
     "RateLimitHourly": 20,     // Max requests per IP per hour
     "RateLimitDaily": 100,     // Max requests per IP per day
+    "RateLimitConcurrency": 1, // Max concurrent sessions per IP
+    "EnableIpApiCheck": true,  // External IP check toggle
+    "EnableIpApiCache": true,  // Cache ipapi.is results to save costs
+    "IpApiCacheDurationDays": 14, // How many days to cache the IP result for
     "BlockVpn": true,          // Reject known VPNs
     "BlockProxy": true,        // Reject known Proxies
     "BlockDatacenter": false   // Reject Datacenter IPs (AWS, Azure, etc.)
@@ -115,6 +123,8 @@ All configuration is managed via `appsettings.json`. You must configure these va
 **Request Body:**
 ```json
 {
+  "campaignId": "ExampleCampaign",
+  "regionId": "us-east-1",
   "clientIdentifier": "user-123",
   "dynamicVariables": {
     "FirstName": "John"

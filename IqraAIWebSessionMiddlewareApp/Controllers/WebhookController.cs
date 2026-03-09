@@ -1,4 +1,5 @@
-﻿using IqraAIWebSessionMiddlewareApp.Services.Interfaces;
+﻿using IqraAIWebSessionMiddlewareApp.Dtos.Webhook;
+using IqraAIWebSessionMiddlewareApp.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace IqraAIWebSessionMiddlewareApp.Controllers
@@ -9,21 +10,37 @@ namespace IqraAIWebSessionMiddlewareApp.Controllers
     {
         private readonly IQueueProcessor _queueProcessor;
         private readonly IConcurrencyService _concurrencyService;
+        private readonly IRateLimitService _rateLimitService;
         private readonly ILogger<WebhookController> _logger;
 
-        public WebhookController(IQueueProcessor queueProcessor, IConcurrencyService concurrencyService, ILogger<WebhookController> logger)
+        public WebhookController(
+            IQueueProcessor queueProcessor, 
+            IConcurrencyService concurrencyService, 
+            IRateLimitService rateLimitService,
+            ILogger<WebhookController> logger)
         {
             _queueProcessor = queueProcessor;
             _concurrencyService = concurrencyService;
+            _rateLimitService = rateLimitService;
             _logger = logger;
         }
 
         // This endpoint should be secured, e.g., by checking a secret token from the header
         // For now, we'll keep it simple.
         [HttpPost("session-ended")]
-        public async Task<IActionResult> SessionEnded([FromBody] object payload) // Define a proper payload model later
+        public async Task<IActionResult> SessionEnded([FromBody] SessionEndedPayload payload)
         {
             _logger.LogInformation("Received session-ended webhook.");
+
+            if (!string.IsNullOrEmpty(payload.SessionId))
+            {
+                var ipAddress = await _rateLimitService.GetIpForSessionAsync(payload.SessionId);
+                if (!string.IsNullOrEmpty(ipAddress))
+                {
+                    await _rateLimitService.DecrementConcurrentAsync(ipAddress);
+                    _logger.LogInformation("Decremented rate limit concurrency for IP {IpAddress}", ipAddress);
+                }
+            }
 
             // It's crucial to decrement our counter when a session ends.
             await _concurrencyService.DecrementCurrentAsync();

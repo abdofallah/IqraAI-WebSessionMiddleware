@@ -4,6 +4,8 @@ namespace IqraAIWebSessionMiddlewareApp.Dtos
 {
     public class WidgetRequestPayload
     {
+        public string CampaignId { get; set; } = string.Empty;
+        public string RegionId { get; set; } = string.Empty;
         public VoiceAiWebSessionTransportTypeEnum TransportType { get; set; }
         public string? ClientIdentifier { get; set; }
         public Dictionary<string, string> DynamicVariables { get; set; } = null!;

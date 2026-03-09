@@ -80,11 +80,14 @@ public interface IVoiceAiPlatformService
 **Configuration Object (`WebSessionConfig`):**
 ```csharp
 public record WebSessionConfig(
+    VoiceAiWebSessionTransportTypeEnum TransportType,
+    string BusinessId,
     string WebCampaignId,
     string RegionId,
     string? ClientIdentifier,
-    Dictionary<string, object> DynamicVariables,
-    Dictionary<string, object> Metadata
+    Dictionary<string, string> DynamicVariables,
+    Dictionary<string, string> Metadata,
+    WebSessionAudioConfiguration AudioConfiguration
 );
 ```
 
@@ -174,16 +177,19 @@ public class CustomVoiceController : ControllerBase
 
         // 2. Prepare Config
         var config = new WebSessionConfig(
+            TransportType: VoiceAiWebSessionTransportTypeEnum.WebSocket,
+            BusinessId: "your-business-id",
             WebCampaignId: "your-campaign-id",
             RegionId: "us-east-1",
             ClientIdentifier: model.UserId,
-            DynamicVariables: new Dictionary<string, object> { { "Name", model.UserName } },
-            Metadata: new Dictionary<string, object>()
+            DynamicVariables: new Dictionary<string, string> { { "Name", model.UserName } },
+            Metadata: new Dictionary<string, string>(),
+            AudioConfiguration: new WebSessionAudioConfiguration(...)
         );
 
         // 3. Call Platform
         try {
-            var url = await _voiceService.InitiateWebSessionAsync(config);
+            var (sessionId, url) = await _voiceService.InitiateWebSessionAsync(config);
             
             // 4. Update Concurrency State
             await _concurrency.IncrementCurrentAsync();
@@ -209,9 +215,13 @@ You must add the following sections to your project's `appsettings.json` for the
   "VoiceAiPlatform": {
     "ApiSecretToken": "...",
     "BaseUrl": "https://app.iqra.bot/api/v1/",
-    "BusinessId": "...",
-    "WebCampaignId": "...",
-    "DefaultRegionId": "us-east-1"
+    "Campaigns": {
+        "Default": {
+          "BusinessId": "...",
+          "WebCampaignId": "...",
+          "AllowedRegionIds": ["us-east-1"]
+        }
+    }
   },
   "IpApi": {
     "ApiKey": "...",
@@ -220,6 +230,10 @@ You must add the following sections to your project's `appsettings.json` for the
   "Security": {
     "RateLimitHourly": 20,
     "RateLimitDaily": 100,
+    "RateLimitConcurrency": 1,
+    "EnableIpApiCheck": true,
+    "EnableIpApiCache": true,
+    "IpApiCacheDurationDays": 14,
     "BlockVpn": true,
     "BlockProxy": true,
     "BlockDatacenter": false

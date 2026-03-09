@@ -41,6 +41,7 @@ namespace IqraAIWebSessionMiddlewareApp
             builder.Services.AddScoped<IIpInfoService, IpInfoService>();
             builder.Services.AddScoped<IVoiceAiPlatformService, VoiceAiPlatformService>();
             builder.Services.AddSingleton<IConcurrencyService, ConcurrencyService>();
+            builder.Services.AddSingleton<IRateLimitService, RateLimitService>();
             builder.Services.AddSingleton<IQueueService, QueueService>();
             builder.Services.AddScoped<IQueueProcessor, QueueProcessor>();
 

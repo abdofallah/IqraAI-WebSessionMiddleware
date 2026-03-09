@@ -29,11 +29,32 @@ namespace IqraAIWebSessionMiddlewareApp.Workers
                     {
                         var voiceAiService = scope.ServiceProvider.GetRequiredService<IVoiceAiPlatformService>();
                         var concurrencyService = scope.ServiceProvider.GetRequiredService<IConcurrencyService>();
+                        var queueService = scope.ServiceProvider.GetRequiredService<IQueueService>();
+                        var queueProcessor = scope.ServiceProvider.GetRequiredService<IQueueProcessor>();
 
                         var (current, max) = await voiceAiService.GetConcurrencyDataAsync();
                         await concurrencyService.UpdateStatusAsync(current, max);
 
                         _logger.LogInformation("Successfully polled and updated concurrency: {Current}/{Max}", current, max);
+
+                        // If we have available slots, check if there are items in the queue
+                        if (current < max)
+                        {
+                            var availableSlots = max - current;
+                            var queueLength = await queueService.GetQueueLengthAsync();
+                            
+                            if (queueLength > 0)
+                            {
+                                var toProcess = Math.Min((int)availableSlots, (int)queueLength);
+                                _logger.LogInformation("Found {QueueLength} items in queue and {AvailableSlots} available slots. Triggering {ToProcess} processors.", queueLength, availableSlots, toProcess);
+                                
+                                for (int i = 0; i < toProcess; i++)
+                                {
+                                    // Fire and forget to avoid blocking the polling loop
+                                    _ = queueProcessor.ProcessNextInQueueAsync();
+                                }
+                            }
+                        }
                     }
                 }
                 catch (Exception ex)

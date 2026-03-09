@@ -4,6 +4,7 @@ namespace IqraAIWebSessionMiddlewareApp.Services.Interfaces
 {
     public record WebSessionConfig(
         VoiceAiWebSessionTransportTypeEnum TransportType,
+        string BusinessId,
         string WebCampaignId,
         string RegionId,
         string? ClientIdentifier, // Can be null
@@ -24,6 +25,6 @@ namespace IqraAIWebSessionMiddlewareApp.Services.Interfaces
     public interface IVoiceAiPlatformService
     {
         Task<(decimal Current, decimal Max)> GetConcurrencyDataAsync();
-        Task<string> InitiateWebSessionAsync(WebSessionConfig config);
+        Task<(string SessionId, string WebSocketUrl)> InitiateWebSessionAsync(WebSessionConfig config);
     }
 }

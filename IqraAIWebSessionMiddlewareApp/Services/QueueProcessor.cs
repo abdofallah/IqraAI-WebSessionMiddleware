@@ -14,6 +14,7 @@ namespace IqraAIWebSessionMiddlewareApp.Services
         private readonly IQueueService _queueService;
         private readonly IVoiceAiPlatformService _voiceAiPlatformService;
         private readonly IConcurrencyService _concurrencyService;
+        private readonly IRateLimitService _rateLimitService;
         private readonly IHubContext<SessionHub> _hubContext;
         private readonly ILogger<QueueProcessor> _logger;
         private readonly RedLockFactory _redLockFactory;
@@ -23,6 +24,7 @@ namespace IqraAIWebSessionMiddlewareApp.Services
             IQueueService queueService,
             IVoiceAiPlatformService voiceAiPlatformService,
             IConcurrencyService concurrencyService,
+            IRateLimitService rateLimitService,
             IHubContext<SessionHub> hubContext,
             ILogger<QueueProcessor> logger,
             IConnectionMultiplexer redisConnection,
@@ -31,6 +33,7 @@ namespace IqraAIWebSessionMiddlewareApp.Services
             _queueService = queueService;
             _voiceAiPlatformService = voiceAiPlatformService;
             _concurrencyService = concurrencyService;
+            _rateLimitService = rateLimitService;
             _hubContext = hubContext;
             _logger = logger;
             _platformSettings = platformSettings.Value;
@@ -75,11 +78,17 @@ namespace IqraAIWebSessionMiddlewareApp.Services
 
                 try
                 {
+                    if (string.IsNullOrEmpty(queueEntry.Payload.CampaignId) || !_platformSettings.Campaigns.TryGetValue(queueEntry.Payload.CampaignId, out var campaignConfig))
+                    {
+                        throw new InvalidOperationException($"Invalid or missing CampaignId: {queueEntry.Payload.CampaignId}");
+                    }
+
                     var config = new WebSessionConfig(
                         TransportType: queueEntry.Payload.TransportType,
-                        WebCampaignId: _platformSettings.WebCampaignId,
-                        RegionId: _platformSettings.DefaultRegionId,
-                        ClientIdentifier: queueEntry.Payload.ClientIdentifier,
+                        BusinessId: campaignConfig.BusinessId,
+                        WebCampaignId: campaignConfig.WebCampaignId,
+                        RegionId: queueEntry.Payload.RegionId,
+                        ClientIdentifier: string.IsNullOrEmpty(queueEntry.Payload.ClientIdentifier) ? queueEntry.IpAddress : $"{queueEntry.Payload.ClientIdentifier}_{queueEntry.IpAddress}",
                         DynamicVariables: queueEntry.Payload.DynamicVariables,
                         Metadata: queueEntry.Payload.Metadata,
                         new WebSessionAudioConfiguration(
@@ -92,11 +101,13 @@ namespace IqraAIWebSessionMiddlewareApp.Services
                         )
                     );
 
-                    var webSocketUrl = await _voiceAiPlatformService.InitiateWebSessionAsync(config);
+                    var sessionResult = await _voiceAiPlatformService.InitiateWebSessionAsync(config);
+                    
+                    await _rateLimitService.MapSessionToIpAsync(sessionResult.SessionId, queueEntry.IpAddress);
 
                     // Notify the specific waiting client via SignalR
                     await _hubContext.Clients.Group(queueEntry.UniqueRequestId)
-                                     .SendAsync("SessionReady", new { webSocketUrl });
+                                     .SendAsync("SessionReady", new { webSocketUrl = sessionResult.WebSocketUrl });
 
                     _logger.LogInformation("Successfully processed and sent WebSocket URL to client for request {RequestId}", queueEntry.UniqueRequestId);
 
@@ -105,6 +116,9 @@ namespace IqraAIWebSessionMiddlewareApp.Services
                 }
                 catch (Exception ex)
                 {
+                    // If queue processing errors out before mapping, we need to revert the IP rate limit currency
+                    await _rateLimitService.DecrementConcurrentAsync(queueEntry.IpAddress);
+
                     _logger.LogError(ex, "Failed to process request {RequestId} from queue.", queueEntry.UniqueRequestId);
 
                     // Notify the client that something went wrong so they aren't stuck waiting

@@ -2,7 +2,7 @@
 
 namespace IqraAIWebSessionMiddlewareApp.Services.Interfaces
 {
-    public record QueueEntry(string UniqueRequestId, WidgetRequestPayload Payload);
+    public record QueueEntry(string UniqueRequestId, string IpAddress, WidgetRequestPayload Payload);
 
     public interface IQueueService
     {

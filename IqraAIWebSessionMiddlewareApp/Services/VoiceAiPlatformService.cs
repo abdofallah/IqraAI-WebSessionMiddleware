@@ -37,9 +37,9 @@ namespace IqraAIWebSessionMiddlewareApp.Services
             return ((decimal)currentConcurrency, (decimal)maxConcurrency);
         }
 
-        public async Task<string> InitiateWebSessionAsync(WebSessionConfig config)
+        public async Task<(string SessionId, string WebSocketUrl)> InitiateWebSessionAsync(WebSessionConfig config)
         {
-            var requestUri = $"business/{_settings.BusinessId}/websession/initiate";
+            var requestUri = $"business/{config.BusinessId}/websession/initiate";
 
             var requestData = new VoiceAiInitiateWebSessionRequest
             {
@@ -86,7 +86,7 @@ namespace IqraAIWebSessionMiddlewareApp.Services
                 throw new InvalidOperationException($"[{responseData.Code}] {responseData.Message}");
             }
 
-            return responseData.Data!.SessionWebSocketURL;
+            return (responseData.Data!.SessionId, responseData.Data!.SessionWebSocketURL);
         }
 
         private async Task<Dictionary<string, decimal>> GetCurrentUsageAsync()
