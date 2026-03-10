@@ -21,6 +21,13 @@ namespace IqraAIWebSessionMiddlewareApp.Services
             return await _redisDb.ListLeftPushAsync(QueueKey, serializedEntry);
         }
 
+        public async Task RequeueAsync(QueueEntry entry)
+        {
+            var serializedEntry = JsonSerializer.Serialize(entry);
+            // RPUSH adds to the "right" or tail of the list, placing it at the front of the queue to be DEQUEUED next.
+            await _redisDb.ListRightPushAsync(QueueKey, serializedEntry);
+        }
+
         public async Task<QueueEntry?> DequeueAsync()
         {
             // RPOP removes from the "right" or tail of the list, creating a FIFO queue.

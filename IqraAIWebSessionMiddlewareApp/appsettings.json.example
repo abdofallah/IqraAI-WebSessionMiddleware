@@ -43,6 +43,7 @@
     "EnableIpApiCheck": true,  // Toggle the external ipapi.is check
     "EnableIpApiCache": true,  // Cache ipapi.is results to save costs
     "IpApiCacheDurationDays": 14, // How many days to cache the IP result for
+    "WebhookApiToken": "YOUR_SECRET_WEBHOOK_TOKEN", // Validate requests from iqra.bot
     "BlockVpn": true,          // Reject known VPNs
     "BlockProxy": true,        // Reject known Proxies
     "BlockDatacenter": false   // Reject Datacenter IPs (AWS, Azure, etc.)

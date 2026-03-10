@@ -155,8 +155,6 @@ Fired if an unexpected error occurs on the server while trying to process the us
 **Payload Expected from Platform:**
 ```json
 {
-  "clientIdentifier": "user-abcdef",
-  "sessionId": "ses_xxxxxxxx",
-  "webSessionId": "wse_xxxxxxxx"
+  "WebSessionId": "ses_xxxxxxxx"
 }
 ```

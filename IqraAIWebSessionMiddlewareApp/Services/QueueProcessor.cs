@@ -117,7 +117,21 @@ namespace IqraAIWebSessionMiddlewareApp.Services
                 catch (Exception ex)
                 {
                     // If queue processing errors out before mapping, we need to revert the IP rate limit currency
-                    await _rateLimitService.DecrementConcurrentAsync(queueEntry.IpAddress);
+                    if (queueEntry.RevertToken != null)
+                    {
+                        await _rateLimitService.RevertRateLimitsAsync(queueEntry.IpAddress, queueEntry.RevertToken);
+                    }
+                    else
+                    {
+                        await _rateLimitService.DecrementConcurrentAsync(queueEntry.IpAddress);
+                    }
+
+                    if (ex.Message.Contains("concurrency", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("too many", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger.LogWarning("Concurrency full from iqra.bot for queue entry {RequestId}. Re-queueing at the front.", queueEntry.UniqueRequestId);
+                        await _queueService.RequeueAsync(queueEntry);
+                        return; // Return silently, they are requeued
+                    }
 
                     _logger.LogError(ex, "Failed to process request {RequestId} from queue.", queueEntry.UniqueRequestId);
 

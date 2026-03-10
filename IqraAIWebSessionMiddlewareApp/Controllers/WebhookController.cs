@@ -1,6 +1,8 @@
 ﻿using IqraAIWebSessionMiddlewareApp.Dtos.Webhook;
 using IqraAIWebSessionMiddlewareApp.Services.Interfaces;
+using IqraAIWebSessionMiddlewareApp.Settings;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace IqraAIWebSessionMiddlewareApp.Controllers
 {
@@ -8,48 +10,39 @@ namespace IqraAIWebSessionMiddlewareApp.Controllers
     [Route("api/[controller]")]
     public class WebhookController : ControllerBase
     {
-        private readonly IQueueProcessor _queueProcessor;
-        private readonly IConcurrencyService _concurrencyService;
         private readonly IRateLimitService _rateLimitService;
+        private readonly SecuritySettings _securitySettings;
         private readonly ILogger<WebhookController> _logger;
 
         public WebhookController(
-            IQueueProcessor queueProcessor, 
-            IConcurrencyService concurrencyService, 
             IRateLimitService rateLimitService,
+            IOptions<SecuritySettings> securitySettings,
             ILogger<WebhookController> logger)
         {
-            _queueProcessor = queueProcessor;
-            _concurrencyService = concurrencyService;
             _rateLimitService = rateLimitService;
+            _securitySettings = securitySettings.Value;
             _logger = logger;
         }
 
-        // This endpoint should be secured, e.g., by checking a secret token from the header
-        // For now, we'll keep it simple.
         [HttpPost("session-ended")]
         public async Task<IActionResult> SessionEnded([FromBody] SessionEndedPayload payload)
         {
-            _logger.LogInformation("Received session-ended webhook.");
-
-            if (!string.IsNullOrEmpty(payload.SessionId))
+            var providedToken = Request.Headers["X-Api-Token"].FirstOrDefault() ?? string.Empty;
+            if (string.IsNullOrEmpty(_securitySettings.WebhookApiToken) || providedToken != _securitySettings.WebhookApiToken)
             {
-                var ipAddress = await _rateLimitService.GetIpForSessionAsync(payload.SessionId);
+                _logger.LogWarning("Unauthorized webhook access attempt.");
+                return Unauthorized();
+            }
+
+            if (!string.IsNullOrEmpty(payload.WebSessionId))
+            {
+                var ipAddress = await _rateLimitService.GetIpForSessionAsync(payload.WebSessionId);
                 if (!string.IsNullOrEmpty(ipAddress))
                 {
                     await _rateLimitService.DecrementConcurrentAsync(ipAddress);
-                    _logger.LogInformation("Decremented rate limit concurrency for IP {IpAddress}", ipAddress);
                 }
             }
 
-            // It's crucial to decrement our counter when a session ends.
-            await _concurrencyService.DecrementCurrentAsync();
-
-            // Now, trigger the queue processor to see if a waiting user can take the freed slot.
-            _ = _queueProcessor.ProcessNextInQueueAsync();
-
-            // Return 200 OK immediately. Don't wait for the queue processor to finish.
-            // The `_ =` syntax starts the task but doesn't wait for it to complete.
             return Ok();
         }
     }

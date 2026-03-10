@@ -87,6 +87,7 @@ All configuration is managed via `appsettings.json`. You must configure these va
     "EnableIpApiCheck": true,  // External IP check toggle
     "EnableIpApiCache": true,  // Cache ipapi.is results to save costs
     "IpApiCacheDurationDays": 14, // How many days to cache the IP result for
+    "WebhookApiToken": "YOUR_SECRET_WEBHOOK_TOKEN",
     "BlockVpn": true,          // Reject known VPNs
     "BlockProxy": true,        // Reject known Proxies
     "BlockDatacenter": false   // Reject Datacenter IPs (AWS, Azure, etc.)

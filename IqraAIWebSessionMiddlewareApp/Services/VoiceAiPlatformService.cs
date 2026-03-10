@@ -95,12 +95,19 @@ namespace IqraAIWebSessionMiddlewareApp.Services
             response.EnsureSuccessStatusCode();
             var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
 
+            if (doc.RootElement.TryGetProperty("success", out var success) &&
+                success.ValueKind == JsonValueKind.False)
+            {
+                throw new Exception($"Error Occured when retrieving current usage: {doc.RootElement.GetProperty("message").GetString()}");
+            }
+
             if (doc.RootElement.TryGetProperty("data", out var data) &&
                 data.TryGetProperty("currentUsage", out var currentUsage) &&
                 currentUsage.ValueKind == JsonValueKind.Object)
             {
                 return JsonSerializer.Deserialize<Dictionary<string, decimal>>(currentUsage.GetRawText()) ?? new();
             }
+
             return new Dictionary<string, decimal>();
         }
 
@@ -109,6 +116,12 @@ namespace IqraAIWebSessionMiddlewareApp.Services
             var response = await _httpClient.GetAsync("user/billing/featuresactivequantity");
             response.EnsureSuccessStatusCode();
             var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+
+            if (doc.RootElement.TryGetProperty("success", out var success) &&
+                success.ValueKind == JsonValueKind.False)
+            {
+                throw new Exception($"Error Occured when retrieving current active features: {doc.RootElement.GetProperty("message").GetString()}");
+            }
 
             if (doc.RootElement.TryGetProperty("data", out var data) &&
                 data.ValueKind == JsonValueKind.Object)

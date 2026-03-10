@@ -16,64 +16,114 @@ namespace IqraAIWebSessionMiddlewareApp.Services
             _securitySettings = securitySettings.Value;
         }
 
+        private const string RateLimitScript = @"
+local concurrentKey = KEYS[1]
+local hourlyKey = KEYS[2]
+local dailyKey = KEYS[3]
+
+local maxConcurrent = tonumber(ARGV[1])
+local maxHourly = tonumber(ARGV[2])
+local maxDaily = tonumber(ARGV[3])
+
+local now = tonumber(ARGV[4])
+local hourlyWindowStart = tonumber(ARGV[5])
+local dailyWindowStart = tonumber(ARGV[6])
+local token = ARGV[7]
+
+-- Check Concurrent
+if maxConcurrent > 0 then
+    local currentConcurrent = tonumber(redis.call('GET', concurrentKey) or '0')
+    if currentConcurrent >= maxConcurrent then
+        return 'CONCURRENT_LIMIT'
+    end
+end
+
+-- Check Hourly
+if maxHourly > 0 then
+    redis.call('ZREMRANGEBYSCORE', hourlyKey, '-inf', hourlyWindowStart)
+    local currentHourly = tonumber(redis.call('ZCARD', hourlyKey) or '0')
+    if currentHourly >= maxHourly then
+        return 'HOURLY_LIMIT'
+    end
+end
+
+-- Check Daily
+if maxDaily > 0 then
+    redis.call('ZREMRANGEBYSCORE', dailyKey, '-inf', dailyWindowStart)
+    local currentDaily = tonumber(redis.call('ZCARD', dailyKey) or '0')
+    if currentDaily >= maxDaily then
+        return 'DAILY_LIMIT'
+    end
+end
+
+-- All checks passed, apply increments
+if maxConcurrent > 0 then
+    redis.call('INCR', concurrentKey)
+end
+
+if maxHourly > 0 then
+    redis.call('ZADD', hourlyKey, now, token)
+    redis.call('EXPIRE', hourlyKey, 3600)
+end
+
+if maxDaily > 0 then
+    redis.call('ZADD', dailyKey, now, token)
+    redis.call('EXPIRE', dailyKey, 86400)
+end
+
+return 'OK'
+";
+
+        private const string RevertScript = @"
+local concurrentKey = KEYS[1]
+local hourlyKey = KEYS[2]
+local dailyKey = KEYS[3]
+local token = ARGV[1]
+
+local currentConcurrent = tonumber(redis.call('GET', concurrentKey) or '0')
+if currentConcurrent > 0 then
+    redis.call('DECR', concurrentKey)
+end
+
+redis.call('ZREM', hourlyKey, token)
+redis.call('ZREM', dailyKey, token)
+return 'OK'
+";
+
         public async Task<RateLimitCheckResult> CheckAndAcquireAsync(string ipAddress)
         {
-            var now = DateTime.UtcNow;
-            var dailyKey = $"ratelimit:daily:{ipAddress}:{now:yyyyMMdd}";
-            var hourlyKey = $"ratelimit:hourly:{ipAddress}:{now:yyyyMMddHH}";
-            var concurrentKey = $"ratelimit:concurrent:{ipAddress}";
+            var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var hourlyWindowStart = now - TimeSpan.FromHours(1).TotalMilliseconds;
+            var dailyWindowStart = now - TimeSpan.FromDays(1).TotalMilliseconds;
+            var token = Guid.NewGuid().ToString();
 
-            // We use a transaction/script to check and increment atomically if allowed,
-            // but actually we can just GET, check, and INCR. To avoid race conditions,
-            // a small Lua script is best, or we can just INCR and check if it exceeds, 
-            // if so DECR back. This is simpler without Lua.
-
-            if (_securitySettings.RateLimitConcurrency > 0)
+            var keys = new RedisKey[]
             {
-                var currentConcurrent = (long)await _redisDb.StringGetAsync(concurrentKey);
-                if (currentConcurrent >= _securitySettings.RateLimitConcurrency)
-                {
-                    return new RateLimitCheckResult { IsAllowed = false, Reason = "Too many concurrent sessions from your IP." };
-                }
-            }
+                $"ratelimit:concurrent:{ipAddress}",
+                $"ratelimit:hourly_sliding:{ipAddress}",
+                $"ratelimit:daily_sliding:{ipAddress}"
+            };
 
-            if (_securitySettings.RateLimitDaily > 0)
+            var args = new RedisValue[]
             {
-                var currentDaily = (long)await _redisDb.StringGetAsync(dailyKey);
-                if (currentDaily >= _securitySettings.RateLimitDaily)
-                {
-                    return new RateLimitCheckResult { IsAllowed = false, Reason = "Daily rate limit exceeded." };
-                }
-            }
+                _securitySettings.RateLimitConcurrency,
+                _securitySettings.RateLimitHourly,
+                _securitySettings.RateLimitDaily,
+                now,
+                hourlyWindowStart,
+                dailyWindowStart,
+                token
+            };
 
-            if (_securitySettings.RateLimitHourly > 0)
+            var result = (string?)await _redisDb.ScriptEvaluateAsync(RateLimitScript, keys, args);
+
+            return result switch
             {
-                var currentHourly = (long)await _redisDb.StringGetAsync(hourlyKey);
-                if (currentHourly >= _securitySettings.RateLimitHourly)
-                {
-                    return new RateLimitCheckResult { IsAllowed = false, Reason = "Hourly rate limit exceeded." };
-                }
-            }
-
-            // All checks passed, perform increments
-            if (_securitySettings.RateLimitConcurrency > 0)
-            {
-                await _redisDb.StringIncrementAsync(concurrentKey);
-            }
-
-            if (_securitySettings.RateLimitDaily > 0)
-            {
-                var dailyCount = await _redisDb.StringIncrementAsync(dailyKey);
-                if (dailyCount == 1) await _redisDb.KeyExpireAsync(dailyKey, TimeSpan.FromHours(24));
-            }
-
-            if (_securitySettings.RateLimitHourly > 0)
-            {
-                var hourlyCount = await _redisDb.StringIncrementAsync(hourlyKey);
-                if (hourlyCount == 1) await _redisDb.KeyExpireAsync(hourlyKey, TimeSpan.FromHours(1));
-            }
-
-            return new RateLimitCheckResult { IsAllowed = true };
+                "CONCURRENT_LIMIT" => new RateLimitCheckResult { IsAllowed = false, Reason = "Too many concurrent sessions from your IP." },
+                "HOURLY_LIMIT" => new RateLimitCheckResult { IsAllowed = false, Reason = "Hourly rate limit exceeded." },
+                "DAILY_LIMIT" => new RateLimitCheckResult { IsAllowed = false, Reason = "Daily rate limit exceeded." },
+                _ => new RateLimitCheckResult { IsAllowed = true, RevertToken = token }
+            };
         }
 
         public async Task DecrementConcurrentAsync(string ipAddress)
@@ -87,6 +137,22 @@ namespace IqraAIWebSessionMiddlewareApp.Services
             {
                 await _redisDb.StringDecrementAsync(concurrentKey);
             }
+        }
+
+        public async Task RevertRateLimitsAsync(string ipAddress, string revertToken)
+        {
+            if (string.IsNullOrEmpty(ipAddress) || string.IsNullOrEmpty(revertToken)) return;
+
+            var keys = new RedisKey[]
+            {
+                $"ratelimit:concurrent:{ipAddress}",
+                $"ratelimit:hourly_sliding:{ipAddress}",
+                $"ratelimit:daily_sliding:{ipAddress}"
+            };
+
+            var args = new RedisValue[] { revertToken };
+
+            await _redisDb.ScriptEvaluateAsync(RevertScript, keys, args);
         }
 
         public async Task MapSessionToIpAsync(string sessionId, string ipAddress)

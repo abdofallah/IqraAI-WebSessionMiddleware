@@ -46,8 +46,7 @@ namespace IqraAIWebSessionMiddlewareApp.Workers
                             if (queueLength > 0)
                             {
                                 var toProcess = Math.Min((int)availableSlots, (int)queueLength);
-                                _logger.LogInformation("Found {QueueLength} items in queue and {AvailableSlots} available slots. Triggering {ToProcess} processors.", queueLength, availableSlots, toProcess);
-                                
+ 
                                 for (int i = 0; i < toProcess; i++)
                                 {
                                     // Fire and forget to avoid blocking the polling loop

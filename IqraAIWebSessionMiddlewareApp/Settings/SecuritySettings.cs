@@ -8,6 +8,7 @@
         public bool EnableIpApiCheck { get; set; } = true;
         public bool EnableIpApiCache { get; set; } = true;
         public int IpApiCacheDurationDays { get; set; } = 14;
+        public string WebhookApiToken { get; set; } = string.Empty;
         public bool BlockVpn { get; set; }
         public bool BlockProxy { get; set; }
         public bool BlockDatacenter { get; set; }

@@ -72,7 +72,7 @@ namespace IqraAIWebSessionMiddlewareApp
                 app.MapOpenApi();
             }
 
-            app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
             app.UseCors("AllowSpecificOrigins");
 

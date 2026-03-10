@@ -8,6 +8,7 @@ namespace IqraAIWebSessionMiddlewareApp.Services.Interfaces
     {
         Task<RateLimitCheckResult> CheckAndAcquireAsync(string ipAddress);
         Task DecrementConcurrentAsync(string ipAddress);
+        Task RevertRateLimitsAsync(string ipAddress, string revertToken);
         Task MapSessionToIpAsync(string sessionId, string ipAddress);
         Task<string?> GetIpForSessionAsync(string sessionId);
     }
@@ -16,5 +17,6 @@ namespace IqraAIWebSessionMiddlewareApp.Services.Interfaces
     {
         public bool IsAllowed { get; set; }
         public string Reason { get; set; } = string.Empty;
+        public string? RevertToken { get; set; }
     }
 }

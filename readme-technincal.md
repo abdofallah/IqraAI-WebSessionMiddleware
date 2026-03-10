@@ -234,6 +234,7 @@ You must add the following sections to your project's `appsettings.json` for the
     "EnableIpApiCheck": true,
     "EnableIpApiCache": true,
     "IpApiCacheDurationDays": 14,
+    "WebhookApiToken": "YOUR_SECRET_WEBHOOK_TOKEN",
     "BlockVpn": true,
     "BlockProxy": true,
     "BlockDatacenter": false

@@ -73,7 +73,7 @@ namespace IqraAIWebSessionMiddlewareApp.Controllers
             if (status.Current >= status.Max)
             {
                 var uniqueRequestId = Guid.NewGuid().ToString();
-                var queueEntry = new QueueEntry(uniqueRequestId, ipAddress, payload);
+                var queueEntry = new QueueEntry(uniqueRequestId, ipAddress, rateLimitResult.RevertToken, payload);
 
                 var queuePosition = await _queueService.EnqueueAsync(queueEntry);
                 _logger.LogInformation("Concurrency full. Added request {RequestId} to queue at position {Position}.", uniqueRequestId, queuePosition);
@@ -113,8 +113,11 @@ namespace IqraAIWebSessionMiddlewareApp.Controllers
             }
             catch (Exception ex)
             {
-                // Revert RateLimitConcurrency increment since session creation failed
-                await _rateLimitService.DecrementConcurrentAsync(ipAddress);
+                // Revert RateLimit checks since session creation failed
+                if (rateLimitResult.RevertToken != null)
+                {
+                    await _rateLimitService.RevertRateLimitsAsync(ipAddress, rateLimitResult.RevertToken);
+                }
 
                 _logger.LogError(ex, "Error initiating web session directly.");
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while trying to initiate the session." });
