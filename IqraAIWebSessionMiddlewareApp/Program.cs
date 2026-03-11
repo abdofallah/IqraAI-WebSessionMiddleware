@@ -1,9 +1,9 @@
-
 using IqraAIWebSessionMiddlewareApp.Hubs;
 using IqraAIWebSessionMiddlewareApp.Services;
 using IqraAIWebSessionMiddlewareApp.Services.Interfaces;
 using IqraAIWebSessionMiddlewareApp.Settings;
 using IqraAIWebSessionMiddlewareApp.Workers;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 using System.Net.Http.Headers;
@@ -64,15 +64,14 @@ namespace IqraAIWebSessionMiddlewareApp
                     });
             });
 
+            builder.Services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+            });
+
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.MapOpenApi();
-            }
-
-//app.UseHttpsRedirection();
+            app.UseForwardedHeaders();
 
             app.UseCors("AllowSpecificOrigins");
 
