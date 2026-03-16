@@ -30,18 +30,21 @@ namespace IqraAIWebSessionMiddlewareApp.Controllers
             var providedToken = Request.Headers["X-Api-Token"].FirstOrDefault() ?? string.Empty;
             if (string.IsNullOrEmpty(_securitySettings.WebhookApiToken) || providedToken != _securitySettings.WebhookApiToken)
             {
-                _logger.LogWarning("Unauthorized webhook access attempt.");
                 return Unauthorized();
             }
 
-            if (!string.IsNullOrEmpty(payload.WebSessionId))
+            if (string.IsNullOrEmpty(payload.WebSessionId))
             {
-                var ipAddress = await _rateLimitService.GetIpForSessionAsync(payload.WebSessionId);
-                if (!string.IsNullOrEmpty(ipAddress))
-                {
-                    await _rateLimitService.DecrementConcurrentAsync(ipAddress);
-                }
+                return BadRequest(new { message = "Invalid or missing WebSessionId." });
             }
+
+            var ipAddress = await _rateLimitService.GetIpForSessionAsync(payload.WebSessionId);
+            if (string.IsNullOrEmpty(ipAddress))
+            {
+                return BadRequest(new { message = "No session found for WebSessionId." });
+            }
+
+            await _rateLimitService.DecrementConcurrentAsync(ipAddress);
 
             return Ok();
         }
