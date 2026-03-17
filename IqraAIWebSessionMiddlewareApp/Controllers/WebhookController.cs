@@ -33,15 +33,15 @@ namespace IqraAIWebSessionMiddlewareApp.Controllers
                 return Unauthorized();
             }
 
-            if (string.IsNullOrEmpty(payload.WebSessionId))
+            if (string.IsNullOrEmpty(payload.ConversationSessionId))
             {
-                return BadRequest(new { message = "Invalid or missing WebSessionId." });
+                return BadRequest(new { message = "Invalid or missing ConversationSessionId." });
             }
 
-            var ipAddress = await _rateLimitService.GetIpForSessionAsync(payload.WebSessionId);
+            var ipAddress = await _rateLimitService.GetIpForSessionAsync(payload.ConversationSessionId);
             if (string.IsNullOrEmpty(ipAddress))
             {
-                return BadRequest(new { message = "No session found for WebSessionId." });
+                return BadRequest(new { message = "No session found for ConversationSessionId." });
             }
 
             await _rateLimitService.DecrementConcurrentAsync(ipAddress);

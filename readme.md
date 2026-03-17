@@ -17,27 +17,26 @@ While this middleware exposes a standard REST and SignalR API allowing you to bu
 *   **Distributed Queueing:** Uses **Redis** and **SignalR** to manage a First-In-First-Out (FIFO) queue. Users are notified in real-time when a slot becomes available.
 *   **Smart Security:**
     *   **IP Validation:** Detects and blocks VPNs, Proxies, and Tor nodes using `ipapi.is`. Can be toggled on/off, and queries can be aggressively cached to save API costs.
-    *   **Rate Limiting:** configurable concurrent, hourly and daily request limits per IP address (0 for unlimited).
-*   **Scalable Architecture:** Built on .NET and Redis, capable of running across multiple server instances (stateless API).
+    *   **Rate Limiting:** Configurable concurrent, hourly and daily request limits per IP address (0 for unlimited).
+*   **Scalable Architecture:** Built on .NET, Docker, and Redis, capable of running across multiple server instances (stateless API).
 
 ---
 
 ## 📋 Prerequisites
 
-Before running the application, ensure you have the following installed:
+Before running the application, ensure you have the following:
 
-1.  **.NET SDK** ([Download](https://dotnet.microsoft.com/download/dotnet/98.0))
-2.  **Redis Server** (Required for caching, queueing, and distributed locking).
-    *   *Local:* `docker run --name redis-dev -p 6379:6379 -d redis`
+1.  **Docker & Docker Compose** (Recommended for easiest deployment).
+2.  *Alternative (Manual Setup):* **.NET 9 SDK** and a running **Redis Server**.
 3.  **API Keys:**
     *   Voice AI Platform (Iqra.bot) API Token.
-    *   IPAPI.is API Key (Free tier available).
+    *   IPAPI.is API Key (If using IP validation, Free tier available).
 
 ---
 
 ## ⚙️ Configuration
 
-All configuration is managed via `appsettings.json`. You must configure these values before starting the application.
+Configuration is managed via `appsettings.json` or Environment Variables.
 
 ### `appsettings.json` Structure
 
@@ -124,27 +123,49 @@ For a complete breakdown of payloads, endpoints, WebSockets, error codes, and Si
 
 ## 🚀 Deployment
 
-### 1. Publish the Application
-Run the following command to generate the production binaries:
+### 1. Docker Compose (Recommended)
+The official Docker image is automatically built and published to Docker Hub at `abdofallah/iqraai-websessionmiddleware:latest`.
+
+The easiest way to deploy the middleware and its required Redis instance is using the included `docker-compose.yml` file.
+
+1. Download or clone the repository.
+2. Create a copy of the `appsettings.json.example` and edit to match your configuration.
+2. Edit the `/host/path/to/appsettings.json` path in `docker-compose.yml` to match the path to your `appsettings.json` file.
+3. Run the following command in the terminal:
+   ```bash
+   docker-compose up -d
+   ```
+The middleware will now be running on port `8080`.
+
+### 2. Manual Deployment (Bare Metal / IIS)
+If you prefer not to use Docker, you can publish the binaries directly:
 ```bash
 dotnet publish -c Release -o ./publish
 ```
+*Note: Ensure you have a Redis instance running locally or remotely, and update your `appsettings.json` with the `RedisConnectionString`.*
 
-### 2. Environment Variables
-In a production environment (like Azure App Service, Docker, or Linux), it is recommended to override sensitive `appsettings.json` values using Environment Variables:
+### 3. Webhook Configuration (Crucial)
+Ensure your Voice AI Platform (Iqra.bot) is configured to send the "End Call" webhook to your deployed middleware URL so the queue can advance and each ip concurrency is lowered after conversation ends:
+1. Create a tool with the following configuration:
+Endpoint: `https://your-middleware-domain.com/api/webhook/session-ended`
+Request Type: Post
+Input Schema: Create a string argurment with id `conversationsessionid` with requried checked, and name/description of your choice.
+Body:
+```
+{
+  "ConversationSessionId": "{{conversationsessionid}}"
+}
+```
+2. In your web campaign action:
+  a. Add the tool to the "End Call" webhook action
+  b. Include the `conversationsessionid` arguement and map it to the `Conversation Session Id`
 
-*   `VoiceAiPlatform__ApiSecretToken`
-*   `IpApi__ApiKey`
-*   `RedisConnectionString`
-
-### 3. Webhook Configuration
-Ensure your Voice AI Platform (Iqra.bot) is configured to send the "End Call" webhook to your deployed middleware URL:
-`https://your-middleware-domain.com/api/webhook/session-ended`
+This will ensure when a conversation ends, a webhook is sent to the middleware with the conversation session id so the middleware knows to clear the local concurrency of that session.
 
 ---
 
 ## 🧪 Troubleshooting
 
-*   **Redis Connection Error:** Ensure Redis is running and the `RedisConnectionString` is correct. If using Docker, ensure the middleware container can reach the Redis container.
-*   **CORS Errors:** If the widget fails to connect, check the `AllowedOrigins` array in `appsettings.json`. It must include the domain where the widget is hosted.
-*   **Concurrency Issues:** If users are stuck in the queue, ensure the **Webhook** is correctly configured and reaching the middleware. The queue only moves when the webhook signals that a call has ended.
+*   **Redis Connection Error:** Ensure Redis is running and the `RedisConnectionString` is correct. If using Docker Compose, the connection string should simply be `redis:6379`.
+*   **CORS Errors:** If the widget fails to connect, check the `AllowedOrigins` array in `appsettings.json` (or the `AllowedOrigins__0` environment variable). It must include the exact domain where the widget is hosted.
+*   **Concurrency Issues:** If users are stuck in the queue, ensure the **Webhook** is correctly configured on the Iqra dashboard and reaching the middleware successfully.

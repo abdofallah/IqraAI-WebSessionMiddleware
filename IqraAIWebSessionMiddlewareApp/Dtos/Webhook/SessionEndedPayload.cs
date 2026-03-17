@@ -2,6 +2,6 @@ namespace IqraAIWebSessionMiddlewareApp.Dtos.Webhook
 {
     public class SessionEndedPayload
     {
-        public string WebSessionId { get; set; } = string.Empty;
+        public string ConversationSessionId { get; set; } = string.Empty;
     }
 }
