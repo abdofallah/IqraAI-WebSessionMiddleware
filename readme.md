@@ -2,6 +2,8 @@
 
 A robust, scalable middleware solution designed to act as a secure bridge between client-side web widgets and the Voice AI Agent Platform. It handles authentication, concurrency management, user queuing, rate limiting, and security validation.
 
+---
+
 ## 🌐 Official Web Client (JS Widget)
 
 While this middleware exposes a standard REST and SignalR API allowing you to build your own custom client-side integration, we have created an official, framework-agnostic JavaScript widget that connects to this middleware out of the box. 
