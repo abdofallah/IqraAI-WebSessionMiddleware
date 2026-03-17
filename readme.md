@@ -10,6 +10,13 @@ While this middleware exposes a standard REST and SignalR API allowing you to bu
 
 ---
 
+## 🔌 API Reference
+
+For a complete breakdown of payloads, endpoints, WebSockets, error codes, and SignalR Queue integration for building custom clients:
+👉 **[Read the API Reference here &rarr;](readme-api-reference.md)**
+
+---
+
 ## 🚀 Features
 
 *   **Secure Proxy:** Hides sensitive API keys (Iqra.bot tokens) from the client-side browser.
@@ -27,97 +34,10 @@ While this middleware exposes a standard REST and SignalR API allowing you to bu
 Before running the application, ensure you have the following:
 
 1.  **Docker & Docker Compose** (Recommended for easiest deployment).
-2.  *Alternative (Manual Setup):* **.NET 9 SDK** and a running **Redis Server**.
+2.  *Alternative (Manual Setup):* **.NET 10 SDK** and a running **Redis Server**.
 3.  **API Keys:**
     *   Voice AI Platform (Iqra.bot) API Token.
     *   IPAPI.is API Key (If using IP validation, Free tier available).
-
----
-
-## ⚙️ Configuration
-
-Configuration is managed via `appsettings.json`.
-
-### `appsettings.json` Structure
-
-```json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning"
-    }
-  },
-  "AllowedHosts": "*",
-  
-  // CORS: Add your client domains here
-  "AllowedOrigins": [
-    "https://your-client-website.com",
-    "http://localhost:5173" 
-  ],
-
-  // Redis Connection (e.g., "localhost:6379" or a connection string)
-  "RedisConnectionString": "localhost:6379",
-
-  // Voice AI Platform Configuration
-  "VoiceAiPlatform": {
-    "ApiSecretToken": "YOUR_IQRA_BOT_SECRET_TOKEN",
-    "BaseUrl": "https://app.iqra.bot/api/v1/",
-    "Campaigns": {
-        "ExampleCampaign": {
-          "BusinessId": "1",
-          "WebCampaignId": "YOUR_WEB_CAMPAIGN_ID",
-          "AllowedRegionIds": ["us-east-1"]
-        }
-    }
-  },
-
-  // IP Validation Service
-  "IpApi": {
-    "ApiKey": "YOUR_IPAPI_KEY",
-    "BaseUrl": "https://api.ipapi.is/"
-  },
-
-  // Security & Rate Limiting Rules
-  "Security": {
-    "RateLimitHourly": 20,     // Max requests per IP per hour
-    "RateLimitDaily": 100,     // Max requests per IP per day
-    "RateLimitConcurrency": 1, // Max concurrent sessions per IP
-    "EnableIpApiCheck": true,  // External IP check toggle
-    "EnableIpApiCache": true,  // Cache ipapi.is results to save costs
-    "IpApiCacheDurationDays": 14, // How many days to cache the IP result for
-    "WebhookApiToken": "YOUR_SECRET_WEBHOOK_TOKEN",
-    "BlockVpn": true,          // Reject known VPNs
-    "BlockProxy": true,        // Reject known Proxies
-    "BlockDatacenter": false   // Reject Datacenter IPs (AWS, Azure, etc.)
-  }
-}
-```
-
----
-
-## 🏗 Architecture Overview
-
-1.  **Request Flow:**
-    *   The Client Widget sends a POST request to `/api/session/request`.
-    *   Middleware checks Redis for Rate Limits.
-    *   Middleware validates IP against `ipapi.is`.
-    *   Middleware checks current concurrency against `Iqra.bot` limits.
-
-2.  **Concurrency Handling:**
-    *   **If Slot Available:** The middleware requests a WebSocket URL from the AI Platform and returns it to the client immediately.
-    *   **If Full:** The user is added to a **Redis List** (Queue). The client connects to a **SignalR Hub** and waits.
-
-3.  **Queue Processing:**
-    *   When a call finishes, the AI Platform sends a webhook to `/api/webhook/session-ended`.
-    *   The middleware processes the queue, takes the next user, initiates a session for them, and sends the WebSocket URL via SignalR.
-
----
-
-## 🔌 API Reference
-
-For a complete breakdown of payloads, endpoints, WebSockets, error codes, and SignalR Queue integration for building custom clients:
-👉 **[Read the API Reference here &rarr;](readme-api-reference.md)**
 
 ---
 
