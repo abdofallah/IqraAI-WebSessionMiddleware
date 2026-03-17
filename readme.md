@@ -48,10 +48,10 @@ Before running the application, ensure you have the following:
 We provide an [official Docker image](https://hub.docker.com/r/abdofallah/iqraai-websessionmiddleware) for easy deployment.
 
 ### Using Docker Compose (Recommended)
-The easiest way to deploy the middleware and its required Redis instance is using the included `docker-compose.yml` file.
+The easiest way to deploy the middleware and its required Redis instance is using the included `[docker-compose.yml](https://github.com/abdofallah/IqraAI-WebSessionMiddleware/blob/master/docker-compose.yml)` file.
 
 1.  Download or clone the repository.
-2.  Create a copy of the `IqraAIWebSessionMiddlewareApp/appsettings.json.example` (name it `appsettings.json`) and edit it to match your configuration.
+2.  Create a copy of the `[IqraAIWebSessionMiddlewareApp/appsettings.json.example](https://github.com/abdofallah/IqraAI-WebSessionMiddleware/blob/master/IqraAIWebSessionMiddlewareApp/appsettings.json.example)` (name it `appsettings.json`) and edit it to match your configuration.
 3.  Open `docker-compose.yml` and edit the volume mapping path (`/host/path/to/appsettings.json`) to point to your newly created `appsettings.json` file.
 4.  Run the following command in the terminal:
     ```bash
@@ -68,7 +68,7 @@ If you prefer not to use Docker, you can publish the binaries directly to your s
 ```bash
 dotnet publish -c Release -o ./publish
 ```
-*Note: Ensure you have a Redis instance running locally or remotely, and update your `appsettings.json` with the correct `RedisConnectionString`.*
+*Note: Ensure you have a Redis instance running locally or remotely, and copy & update your `[appsettings.json](https://github.com/abdofallah/IqraAI-WebSessionMiddleware/blob/master/IqraAIWebSessionMiddlewareApp/appsettings.json.example)` with the correct `RedisConnectionString`.*
 
 ---
 
