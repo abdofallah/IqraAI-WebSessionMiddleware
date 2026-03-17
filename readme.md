@@ -36,7 +36,7 @@ Before running the application, ensure you have the following:
 
 ## ⚙️ Configuration
 
-Configuration is managed via `appsettings.json` or Environment Variables.
+Configuration is managed via `appsettings.json`.
 
 ### `appsettings.json` Structure
 
@@ -121,51 +121,60 @@ For a complete breakdown of payloads, endpoints, WebSockets, error codes, and Si
 
 ---
 
-## 🚀 Deployment
+## 🐳 Docker Deployment
 
-### 1. Docker Compose (Recommended)
-The official Docker image is automatically built and published to Docker Hub at `abdofallah/iqraai-websessionmiddleware:latest`.
+We provide an [official Docker image](https://hub.docker.com/r/abdofallah/iqraai-websessionmiddleware) for easy deployment.
 
+### Using Docker Compose (Recommended)
 The easiest way to deploy the middleware and its required Redis instance is using the included `docker-compose.yml` file.
 
-1. Download or clone the repository.
-2. Create a copy of the `appsettings.json.example` and edit to match your configuration.
-2. Edit the `/host/path/to/appsettings.json` path in `docker-compose.yml` to match the path to your `appsettings.json` file.
-3. Run the following command in the terminal:
-   ```bash
-   docker-compose up -d
-   ```
-The middleware will now be running on port `8080`.
+1.  Download or clone the repository.
+2.  Create a copy of the `IqraAIWebSessionMiddlewareApp/appsettings.json.example` (name it `appsettings.json`) and edit it to match your configuration.
+3.  Open `docker-compose.yml` and edit the volume mapping path (`/host/path/to/appsettings.json`) to point to your newly created `appsettings.json` file.
+4.  Run the following command in the terminal:
+    ```bash
+    docker-compose up -d
+    ```
+    The middleware will now be running on port `8080`.
 
-### 2. Manual Deployment (Bare Metal / IIS)
-If you prefer not to use Docker, you can publish the binaries directly:
+---
+
+## 🛠 Manual Deployment (Bare Metal / IIS)
+
+If you prefer not to use Docker, you can publish the binaries directly to your server:
+
 ```bash
 dotnet publish -c Release -o ./publish
 ```
-*Note: Ensure you have a Redis instance running locally or remotely, and update your `appsettings.json` with the `RedisConnectionString`.*
+*Note: Ensure you have a Redis instance running locally or remotely, and update your `appsettings.json` with the correct `RedisConnectionString`.*
 
-### 3. Webhook Configuration (Crucial)
-Ensure your Voice AI Platform (Iqra.bot) is configured to send the "End Call" webhook to your deployed middleware URL so the queue can advance and each ip concurrency is lowered after conversation ends:
-1. Create a tool with the following configuration:
-Endpoint: `https://your-middleware-domain.com/api/webhook/session-ended`
-Request Type: Post
-Input Schema: Create a string argurment with id `conversationsessionid` with requried checked, and name/description of your choice.
-Body:
-```
-{
-  "ConversationSessionId": "{{conversationsessionid}}"
-}
-```
-2. In your web campaign action:
-  a. Add the tool to the "End Call" webhook action
-  b. Include the `conversationsessionid` arguement and map it to the `Conversation Session Id`
+---
 
-This will ensure when a conversation ends, a webhook is sent to the middleware with the conversation session id so the middleware knows to clear the local concurrency of that session.
+## 🪝 Webhook Configuration (Crucial)
+
+Ensure your Voice AI Platform (Iqra.bot) is configured to send the **"End Call"** webhook to your deployed middleware URL. This ensures that when a conversation ends, the queue advances and the local concurrency for that IP/session is cleared.
+
+### Step 1: Create the Webhook Tool
+In your Iqra.bot dashboard, create a tool with the following configuration:
+*   **Endpoint:** `https://your-middleware-domain.com/api/webhook/session-ended`
+*   **Request Type:** `POST`
+*   **Input Schema:** Create a string argument with the ID `conversationsessionid`. Check the "Required" box and provide a name/description of your choice.
+*   **Body:**
+    ```json
+    {
+      "ConversationSessionId": "{{conversationsessionid}}"
+    }
+    ```
+
+### Step 2: Map to the Web Campaign
+In your specific Web Campaign configuration:
+1.  Add the newly created tool to the **"End Call"** webhook action.
+2.  Include the `conversationsessionid` argument and map it directly to the platform's **Conversation Session Id** variable.
 
 ---
 
 ## 🧪 Troubleshooting
 
 *   **Redis Connection Error:** Ensure Redis is running and the `RedisConnectionString` is correct. If using Docker Compose, the connection string should simply be `redis:6379`.
-*   **CORS Errors:** If the widget fails to connect, check the `AllowedOrigins` array in `appsettings.json` (or the `AllowedOrigins__0` environment variable). It must include the exact domain where the widget is hosted.
-*   **Concurrency Issues:** If users are stuck in the queue, ensure the **Webhook** is correctly configured on the Iqra dashboard and reaching the middleware successfully.
+*   **CORS Errors:** If the widget fails to connect, check the `AllowedOrigins` array in your mapped `appsettings.json`. It must include the exact domain where the widget is hosted.
+*   **Concurrency Issues:** If users are stuck in the queue, ensure the **Webhook** is correctly configured on the Iqra dashboard (following the steps above) and is successfully reaching the middleware.
