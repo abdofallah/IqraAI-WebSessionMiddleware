@@ -18,8 +18,8 @@ namespace IqraAIWebSessionMiddlewareApp.Services
         public async Task<ConcurrencyStatus> GetStatusAsync()
         {
             var values = await _redisDb.StringGetAsync(new RedisKey[] { CurrentKey, MaxKey });
-            decimal.TryParse(values[0], out var current);
-            decimal.TryParse(values[1], out var max);
+            decimal.TryParse(values[0].ToString(), out var current);
+            decimal.TryParse(values[1].ToString(), out var max);
             return new ConcurrencyStatus(current, max);
         }
 

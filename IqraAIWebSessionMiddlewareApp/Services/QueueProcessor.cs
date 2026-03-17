@@ -103,7 +103,7 @@ namespace IqraAIWebSessionMiddlewareApp.Services
 
                     var sessionResult = await _voiceAiPlatformService.InitiateWebSessionAsync(config);
                     
-                    await _rateLimitService.MapSessionToIpAsync(sessionResult.SessionId, queueEntry.IpAddress);
+                    await _rateLimitService.MapSessionToIpAsync(sessionResult.ConversationSessionId, queueEntry.IpAddress);
 
                     // Notify the specific waiting client via SignalR
                     await _hubContext.Clients.Group(queueEntry.UniqueRequestId)
