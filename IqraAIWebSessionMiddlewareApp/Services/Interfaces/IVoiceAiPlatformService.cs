@@ -25,6 +25,6 @@ namespace IqraAIWebSessionMiddlewareApp.Services.Interfaces
     public interface IVoiceAiPlatformService
     {
         Task<(decimal Current, decimal Max)> GetConcurrencyDataAsync();
-        Task<(string SessionId, string WebSocketUrl)> InitiateWebSessionAsync(WebSessionConfig config);
+        Task<(string WebSessionId, string ConversationSessionId, string WebSocketUrl)> InitiateWebSessionAsync(WebSessionConfig config);
     }
 }

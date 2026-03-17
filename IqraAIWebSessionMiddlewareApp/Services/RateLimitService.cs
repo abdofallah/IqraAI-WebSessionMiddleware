@@ -155,18 +155,18 @@ return 'OK'
             await _redisDb.ScriptEvaluateAsync(RevertScript, keys, args);
         }
 
-        public async Task MapSessionToIpAsync(string sessionId, string ipAddress)
+        public async Task MapSessionToIpAsync(string conversationSessionId, string ipAddress)
         {
-            if (string.IsNullOrEmpty(sessionId) || string.IsNullOrEmpty(ipAddress)) return;
-            var key = $"sessionip:{sessionId}";
+            if (string.IsNullOrEmpty(conversationSessionId) || string.IsNullOrEmpty(ipAddress)) return;
+            var key = $"conversationsessionip:{conversationSessionId}";
             // Store mapping for 2 hours, should be more than enough for any web session
             await _redisDb.StringSetAsync(key, ipAddress, TimeSpan.FromHours(2));
         }
 
-        public async Task<string?> GetIpForSessionAsync(string sessionId)
+        public async Task<string?> GetIpForSessionAsync(string conversationSessionId)
         {
-            if (string.IsNullOrEmpty(sessionId)) return null;
-            var key = $"sessionip:{sessionId}";
+            if (string.IsNullOrEmpty(conversationSessionId)) return null;
+            var key = $"conversationsessionip:{conversationSessionId}";
             var value = await _redisDb.StringGetAsync(key);
             return value.HasValue ? value.ToString() : null;
         }

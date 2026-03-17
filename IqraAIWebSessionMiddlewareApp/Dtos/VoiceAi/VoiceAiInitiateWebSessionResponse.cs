@@ -2,7 +2,8 @@
 {
     public class VoiceAiInitiateWebSessionResponse
     {
-        public string SessionId { get; set; } = null!;
+        public string WebSessionId { get; set; } = null!;
+        public string ConversationSessionId { get; set; } = null!;
         public string SessionWebSocketURL { get; set; } = null!;
     }
 }

@@ -1,7 +1,3 @@
-using IqraAIWebSessionMiddlewareApp.Settings;
-using Microsoft.Extensions.Options;
-using StackExchange.Redis;
-
 namespace IqraAIWebSessionMiddlewareApp.Services.Interfaces
 {
     public interface IRateLimitService
@@ -9,8 +5,8 @@ namespace IqraAIWebSessionMiddlewareApp.Services.Interfaces
         Task<RateLimitCheckResult> CheckAndAcquireAsync(string ipAddress);
         Task DecrementConcurrentAsync(string ipAddress);
         Task RevertRateLimitsAsync(string ipAddress, string revertToken);
-        Task MapSessionToIpAsync(string sessionId, string ipAddress);
-        Task<string?> GetIpForSessionAsync(string sessionId);
+        Task MapSessionToIpAsync(string conversationSessionId, string ipAddress);
+        Task<string?> GetIpForSessionAsync(string conversationSessionId);
     }
 
     public class RateLimitCheckResult

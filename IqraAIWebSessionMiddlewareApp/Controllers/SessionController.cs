@@ -106,8 +106,8 @@ namespace IqraAIWebSessionMiddlewareApp.Controllers
                     )
                 );
 
-                var (sessionId, webSocketUrl) = await _voiceAiPlatformService.InitiateWebSessionAsync(config);
-                await _rateLimitService.MapSessionToIpAsync(sessionId, ipAddress);
+                var (webSessionId, conversationSessionId, webSocketUrl) = await _voiceAiPlatformService.InitiateWebSessionAsync(config);
+                await _rateLimitService.MapSessionToIpAsync(conversationSessionId, ipAddress);
                 await _concurrencyService.IncrementCurrentAsync();
                 return Ok(new { webSocketUrl });
             }
