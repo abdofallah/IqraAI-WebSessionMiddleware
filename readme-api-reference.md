@@ -150,11 +150,11 @@ Fired if an unexpected error occurs on the server while trying to process the us
 > *Note: This endpoint is strictly for the Voice AI Agent platform to communicate with the middleware. Clients do not call this.*
 
 **Endpoint:** `POST /api/webhook/session-ended`  
-**Description:** This endpoint is configured natively within the Voice AI project's Webhook Settings. When a call drops, the platform hits this endpoint, alerting the middleware to decrement the concurrent session count and proactively process the next client in the Queue.
+**Description:** This endpoint is configured natively within the Voice AI project's Webhook Settings. When a conversation drops, the platform hits this endpoint, alerting the middleware to decrement the concurrent session count and proactively process the next client in the Queue.
 
 **Payload Expected from Platform:**
 ```json
 {
-  "WebSessionId": "ses_xxxxxxxx"
+  "ConversationSessionId": "ses_xxxxxxxx"
 }
 ```
