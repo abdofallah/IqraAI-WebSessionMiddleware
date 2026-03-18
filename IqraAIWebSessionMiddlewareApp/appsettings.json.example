@@ -6,12 +6,18 @@
     }
   },
   "AllowedHosts": "*",
-  
+
   // CORS: Add your client domains here
   "AllowedOrigins": [
     "https://your-client-website.com",
-    "http://localhost:5173" 
+    "http://localhost:5173"
   ],
+
+  // Reverse Proxy Configuration (Nginx / Docker)
+  "ForwardedHeaders": {
+    "KnownProxies": [], // localhost/local ip or docker container bridge ip e.g 172.19.0.1
+    "KnownNetworks": [] // optional use a set of known networks e.g "244.178.44.111/16"
+  },
 
   // Redis Connection (e.g., "localhost:6379" or a connection string)
   "RedisConnectionString": "localhost:6379",
@@ -21,11 +27,11 @@
     "ApiSecretToken": "YOUR_IQRA_BOT_SECRET_TOKEN",
     "BaseUrl": "https://app.iqra.bot/api/v1/",
     "Campaigns": {
-        "IqraWebsiteCampaign": {
-          "BusinessId": "IQRA_BUSINESS_ID",
-          "WebCampaignId": "YOUR_WEB_CAMPAIGN_ID",
-          "AllowedRegionIds": ["EU-DE", "OM-MCT"]
-        }
+      "IqraWebsiteCampaign": {
+        "BusinessId": "IQRA_BUSINESS_ID",
+        "WebCampaignId": "YOUR_WEB_CAMPAIGN_ID",
+        "AllowedRegionIds": [ "EU-DE", "OM-MCT" ]
+      }
     }
   },
 
@@ -37,15 +43,15 @@
 
   // Security & Rate Limiting Rules
   "Security": {
-    "RateLimitHourly": 3,      // Max requests per IP per hour (0 for unlimited)
-    "RateLimitDaily": 20,      // Max requests per IP per day (0 for unlimited)
+    "RateLimitHourly": 3, // Max requests per IP per hour (0 for unlimited)
+    "RateLimitDaily": 20, // Max requests per IP per day (0 for unlimited)
     "RateLimitConcurrency": 1, // Max concurrent sessions per IP (0 for unlimited)
-    "EnableIpApiCheck": true,  // Toggle the external ipapi.is check
-    "EnableIpApiCache": true,  // Cache ipapi.is results to save costs
+    "EnableIpApiCheck": true, // Toggle the external ipapi.is check
+    "EnableIpApiCache": true, // Cache ipapi.is results to save costs
     "IpApiCacheDurationDays": 14, // How many days to cache the IP result for
     "WebhookApiToken": "YOUR_SECRET_WEBHOOK_TOKEN", // Validate requests from iqra.bot
-    "BlockVpn": true,          // Reject known VPNs
-    "BlockProxy": true,        // Reject known Proxies
-    "BlockDatacenter": false   // Reject Datacenter IPs (AWS, Azure, etc.)
+    "BlockVpn": true, // Reject known VPNs
+    "BlockProxy": true, // Reject known Proxies
+    "BlockDatacenter": false // Reject Datacenter IPs (AWS, Azure, etc.)
   }
 }

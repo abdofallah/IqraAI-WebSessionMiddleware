@@ -2,6 +2,7 @@
 using IqraAIWebSessionMiddlewareApp.Settings;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
+using System.Net;
 using System.Text.Json;
 
 namespace IqraAIWebSessionMiddlewareApp.Services
@@ -27,15 +28,24 @@ namespace IqraAIWebSessionMiddlewareApp.Services
 
         public async Task<IpValidationResult> ValidateIpAsync(string ipAddress)
         {
-            // For local development, often the IP is ::1 which is not valid for lookup.
-            if (ipAddress == "::1")
-            {
-                return new IpValidationResult(true, "Local development IP.");
-            }
-
             if (!_securitySettings.EnableIpApiCheck)
             {
                 return new IpValidationResult(true, "IP API checks are disabled.");
+            }
+
+            // Clean up IPv4-mapped IPv6 addresses (e.g., ::ffff:192.168.1.1 -> 192.168.1.1)
+            if (IPAddress.TryParse(ipAddress, out var parsedIp))
+            {
+                if (parsedIp.IsIPv4MappedToIPv6)
+                {
+                    ipAddress = parsedIp.MapToIPv4().ToString();
+                }
+            }
+
+            // For local development, often the IP is ::1 or 127.0.0.1 which is not valid for lookup.
+            if (ipAddress == "::1" || ipAddress == "127.0.0.1")
+            {
+                return new IpValidationResult(true, "Local development IP.");
             }
 
             string cacheKey = $"ipinfo:{ipAddress}";

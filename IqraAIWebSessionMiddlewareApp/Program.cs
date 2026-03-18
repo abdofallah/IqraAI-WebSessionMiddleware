@@ -6,6 +6,7 @@ using IqraAIWebSessionMiddlewareApp.Workers;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
+using System.Net;
 using System.Net.Http.Headers;
 
 namespace IqraAIWebSessionMiddlewareApp
@@ -67,6 +68,38 @@ namespace IqraAIWebSessionMiddlewareApp
             builder.Services.Configure<ForwardedHeadersOptions>(options =>
             {
                 options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+                options.KnownIPNetworks.Clear();
+                options.KnownProxies.Clear();
+
+                // 1. Load Known Proxies (Single IPs)
+                var knownProxies = builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>();
+                if (knownProxies != null)
+                {
+                    foreach (var proxy in knownProxies)
+                    {
+                        if (IPAddress.TryParse(proxy, out var ip))
+                        {
+                            options.KnownProxies.Add(ip);
+                        }
+                    }
+                }
+
+                // 2. Load Known Networks (CIDR notations like 172.19.0.0/16)
+                var knownNetworks = builder.Configuration.GetSection("ForwardedHeaders:KnownNetworks").Get<string[]>();
+                if (knownNetworks != null)
+                {
+                    foreach (var network in knownNetworks)
+                    {
+                        var parts = network.Split('/');
+                        if (parts.Length == 2 &&
+                            IPAddress.TryParse(parts[0], out var ip) &&
+                            int.TryParse(parts[1], out var prefix))
+                        {
+                            options.KnownIPNetworks.Add(new System.Net.IPNetwork(ip, prefix));
+                        }
+                    }
+                }
             });
 
             var app = builder.Build();
