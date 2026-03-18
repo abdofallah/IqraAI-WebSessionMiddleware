@@ -95,8 +95,57 @@ In your specific Web Campaign configuration:
 
 ---
 
+## 🌍 Nginx Reverse Proxy & IP Forwarding
+
+Because this middleware relies heavily on the user's IP address for Rate Limiting and Security Checks (VPN/Proxy detection), it must accurately read the client's real IP. 
+
+If you are running this app behind a reverse proxy like **Nginx** (especially alongside Docker), you must configure Nginx to forward the real IP, and configure the .NET App to trust your Nginx proxy.
+
+### 1. Nginx Configuration Template
+Ensure your Nginx site configuration forwards the necessary headers and supports WebSockets (required for SignalR).
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name api.yourdomain.com;
+
+    # SSL Certificates go here...
+
+    location / {
+        # Point to your Docker container port (e.g., 8080)
+        proxy_pass http://127.0.0.1:8080; 
+
+        # Forward the real IP and Scheme
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # WebSocket Support (Crucial for SignalR Queueing)
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+### 2. Trusting the Proxy in `appsettings.json`
+By default, ASP.NET Core drops the `X-Forwarded-For` header for security reasons unless the request comes from a known proxy. If you are using Docker, Nginx acts as a proxy via the Docker Bridge Gateway (usually `172.17.0.1` or `172.19.0.1`).
+
+Find the Docker gateway IP on your host machine using `ifconfig` or `ip addr`, and add it to the `KnownProxies` array in your `appsettings.json`:
+
+```json
+  "ForwardedHeaders": {
+    "KnownProxies": [ "127.0.0.1", "::1", "172.19.0.1" ]
+  }
+```
+
+---
+
 ## 🧪 Troubleshooting
 
+*   **Error validating IP `::ffff:172.x.x.x`: 400 Bad Request:** This means your app is reading the internal Docker gateway IP instead of the user's real IP. Ensure you have properly configured the `KnownProxies` in your `appsettings.json` and added the `X-Forwarded-For` headers in Nginx as detailed in the Reverse Proxy section above.
 *   **Redis Connection Error:** Ensure Redis is running and the `RedisConnectionString` is correct. If using Docker Compose, the connection string should simply be `redis:6379`.
 *   **CORS Errors:** If the widget fails to connect, check the `AllowedOrigins` array in your mapped `appsettings.json`. It must include the exact domain where the widget is hosted.
 *   **Concurrency Issues:** If users are stuck in the queue, ensure the **Webhook** is correctly configured on the Iqra dashboard (following the steps above) and is successfully reaching the middleware.
